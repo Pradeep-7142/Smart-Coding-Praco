@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Target, Calendar, TrendingUp, CheckCircle2, Clock, XCircle, Check } from "lucide-react";
+import { ActivityCalendar } from "./ActivityCalendar";
 
 const mockUserData = {
   name: "Alex Johnson",
@@ -146,6 +147,9 @@ export const UserDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Activity Calendar - New Section */}
+      <ActivityCalendar />
 
       {/* Difficulty Breakdown */}
       <Card className="bg-white border border-gray-100">
