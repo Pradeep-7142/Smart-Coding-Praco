@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Target, Calendar, TrendingUp, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Trophy, Target, Calendar, TrendingUp, CheckCircle2, Clock, XCircle, Check } from "lucide-react";
 
 const mockUserData = {
   name: "Alex Johnson",
@@ -16,7 +16,8 @@ const mockUserData = {
     mediumSolved: 62,
     hardSolved: 20,
     streak: 12,
-    ranking: 2847
+    dailyTarget: 5,
+    dailySolved: 5
   },
   recentActivity: [
     { question: "Longest Palindromic Substring", difficulty: "Medium", status: "solved", date: "2024-01-15" },
@@ -36,6 +37,7 @@ const mockUserData = {
 export const UserDashboard = () => {
   const { stats } = mockUserData;
   const overallProgress = (stats.totalSolved / stats.totalQuestions) * 100;
+  const isDailyTargetMet = stats.dailySolved >= stats.dailyTarget;
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -103,13 +105,31 @@ export const UserDashboard = () => {
         <Card className="bg-white border border-gray-100">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">Global Ranking</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Daily Target</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">#{stats.ranking}</div>
-            <p className="text-xs text-gray-500">worldwide</p>
+            <div className="flex items-center">
+              <div className="text-2xl font-bold text-gray-900">{stats.dailySolved}/{stats.dailyTarget}</div>
+              {isDailyTargetMet && <Check className="ml-2 h-5 w-5 text-green-500" />}
+            </div>
+            <div className="mt-2">
+              {isDailyTargetMet ? (
+                <div className="flex items-center space-x-2">
+                  <div className="text-xs text-green-600 font-medium">Completed!</div>
+                  <div className="w-6 h-6 rounded-full overflow-hidden bg-green-100">
+                    <img 
+                      src="https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?ixlib=rb-1.2.1&auto=format&fit=crop&w=50&h=50&q=80" 
+                      alt="Achievement" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">problems today</div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
