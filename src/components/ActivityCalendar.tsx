@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
@@ -29,7 +28,6 @@ const mockActivityData = {
   "2024-01-24": { count: 3, questions: ["Valid Parentheses", "Maximum Subarray", "Jump Game"] },
   "2024-01-25": { count: 0, questions: [] },
   "2024-01-26": { count: 4, questions: ["Two Sum", "Add Two Numbers", "Maximum Subarray", "Jump Game"] },
-  // Add more data for previous months to show a longer history
   "2023-12-15": { count: 2, questions: ["Two Sum", "Valid Parentheses"] },
   "2023-12-20": { count: 3, questions: ["Add Two Numbers", "Merge Intervals", "3Sum"] },
   "2023-12-25": { count: 1, questions: ["Product of Array Except Self"] },
@@ -63,41 +61,64 @@ const questionDetails = {
 export const ActivityCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
-  // Get a list of dates organized by months (last 12 months)
-  const getCalendarData = () => {
-    const calendarData = [];
+  // Generate horizontal timeline data (52 weeks)
+  const getHorizontalCalendarData = () => {
+    const weeks = [];
     const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 364); // Start from 52 weeks ago
     
-    // Generate last 12 months of data
-    for (let monthOffset = 11; monthOffset >= 0; monthOffset--) {
-      const month = new Date(today);
-      month.setMonth(today.getMonth() - monthOffset);
+    // Find the Sunday of the week containing startDate
+    const startSunday = new Date(startDate);
+    startSunday.setDate(startDate.getDate() - startDate.getDay());
+    
+    for (let weekIndex = 0; weekIndex < 52; weekIndex++) {
+      const weekStart = new Date(startSunday);
+      weekStart.setDate(startSunday.getDate() + (weekIndex * 7));
       
-      const monthName = month.toLocaleString('default', { month: 'short' });
       const days = [];
-      
-      // Generate days for this month (we'll simplify and use 7 days per week fixed)
-      const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-      
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(month.getFullYear(), month.getMonth(), day);
-        const dateString = formatDate(date);
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const currentDate = new Date(weekStart);
+        currentDate.setDate(weekStart.getDate() + dayIndex);
+        
+        const dateString = formatDate(currentDate);
         const activity = mockActivityData[dateString] || { count: 0, questions: [] };
         
         days.push({
           date: dateString,
           count: activity.count,
-          dayOfWeek: date.getDay()
+          dayOfWeek: dayIndex
         });
       }
       
-      calendarData.push({
-        month: monthName,
+      weeks.push({
+        weekStart: formatDate(weekStart),
         days
       });
     }
     
-    return calendarData;
+    return weeks;
+  };
+  
+  // Get month labels for horizontal display
+  const getMonthLabels = (weeks: any[]) => {
+    const labels = [];
+    let currentMonth = '';
+    
+    weeks.forEach((week, weekIndex) => {
+      const weekStartDate = new Date(week.weekStart);
+      const monthName = weekStartDate.toLocaleString('default', { month: 'short' });
+      
+      if (monthName !== currentMonth) {
+        labels.push({
+          weekIndex,
+          month: monthName
+        });
+        currentMonth = monthName;
+      }
+    });
+    
+    return labels;
   };
   
   // Format date as YYYY-MM-DD
@@ -114,7 +135,7 @@ export const ActivityCalendar = () => {
     return 4;
   };
   
-  // Get bubble color based on activity level
+  // Get square color based on activity level
   const getSquareColor = (level: number): string => {
     switch (level) {
       case 0: return "bg-gray-100";
@@ -126,7 +147,8 @@ export const ActivityCalendar = () => {
     }
   };
   
-  const calendarData = getCalendarData();
+  const weeks = getHorizontalCalendarData();
+  const monthLabels = getMonthLabels(weeks);
   
   return (
     <Card className="bg-white border border-gray-100">
@@ -139,86 +161,38 @@ export const ActivityCalendar = () => {
       <CardContent>
         <div className="overflow-x-auto">
           <div className="min-w-max">
-            {/* Days of week header (Sunday - Saturday) */}
-            <div className="flex text-xs text-gray-500 mb-1 ml-8">
-              <div className="w-3 mx-1">S</div>
-              <div className="w-3 mx-1">M</div>
-              <div className="w-3 mx-1">T</div>
-              <div className="w-3 mx-1">W</div>
-              <div className="w-3 mx-1">T</div>
-              <div className="w-3 mx-1">F</div>
-              <div className="w-3 mx-1">S</div>
+            {/* Month labels */}
+            <div className="flex mb-2 relative h-4">
+              {monthLabels.map((label, index) => (
+                <div 
+                  key={index}
+                  className="text-xs text-gray-500 absolute"
+                  style={{ left: `${label.weekIndex * 15}px` }}
+                >
+                  {label.month}
+                </div>
+              ))}
             </div>
             
-            <div className="flex">
-              {/* Month labels */}
-              <div className="flex flex-col mr-2">
-                {calendarData.map((month, idx) => (
-                  <div 
-                    key={idx} 
-                    className="text-xs text-gray-500 h-[29px] flex items-start"
-                    style={{ marginTop: idx === 0 ? '0' : '-9px' }}
-                  >
-                    {month.month}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Calendar grid */}
-              <div className="flex flex-col">
-                {calendarData.map((month, monthIdx) => {
-                  // Create a 7x5 grid (rows = days of week, columns = weeks)
-                  const weeks: Array<Array<{date: string, count: number} | null>> = Array(7).fill(null).map(() => Array(5).fill(null));
-                  
-                  // Fill the grid with actual days
-                  month.days.forEach(day => {
-                    const weekOfMonth = Math.floor((day.date.split('-')[2] as unknown as number - 1) / 7);
-                    if (weekOfMonth < 5) { // Only show up to 5 weeks
-                      weeks[day.dayOfWeek][weekOfMonth] = { 
-                        date: day.date, 
-                        count: day.count 
-                      };
-                    }
-                  });
+            {/* Calendar grid - 7 rows (days of week) x 52 columns (weeks) */}
+            <div className="grid grid-rows-7 gap-1" style={{ gridTemplateColumns: `repeat(52, 12px)` }}>
+              {Array.from({ length: 7 }, (_, dayIndex) => (
+                weeks.map((week, weekIndex) => {
+                  const day = week.days[dayIndex];
+                  const level = getActivityLevel(day.count);
+                  const squareColor = getSquareColor(level);
                   
                   return (
-                    <div key={monthIdx} className="flex mb-1">
-                      {weeks.map((daysInWeek, dayOfWeekIdx) => (
-                        <div key={dayOfWeekIdx} className="flex flex-col mr-1">
-                          {daysInWeek.map((day, weekIdx) => {
-                            if (!day) return <div key={weekIdx} className="w-3 h-3 bg-transparent my-[2px]"></div>;
-                            
-                            const level = getActivityLevel(day.count);
-                            const squareColor = getSquareColor(level);
-                            
-                            return (
-                              <div 
-                                key={weekIdx}
-                                className={`w-3 h-3 ${squareColor} my-[2px] cursor-pointer transition-all hover:scale-110`}
-                                onClick={() => setSelectedDate(day.date)}
-                                title={`${day.date}: ${day.count} questions solved`}
-                              />
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
+                    <div
+                      key={`${weekIndex}-${dayIndex}`}
+                      className={`w-3 h-3 ${squareColor} cursor-pointer transition-all hover:scale-110 rounded-sm`}
+                      onClick={() => setSelectedDate(day.date)}
+                      title={`${day.date}: ${day.count} questions solved`}
+                    />
                   );
-                })}
-              </div>
+                })
+              )).flat()}
             </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end mt-4">
-          <div className="flex items-center space-x-2 text-xs text-gray-500">
-            <span>Less</span>
-            <div className="w-3 h-3 bg-gray-100"></div>
-            <div className="w-3 h-3 bg-green-200"></div>
-            <div className="w-3 h-3 bg-green-400"></div>
-            <div className="w-3 h-3 bg-green-600"></div>
-            <div className="w-3 h-3 bg-green-800"></div>
-            <span>More</span>
           </div>
         </div>
       </CardContent>
