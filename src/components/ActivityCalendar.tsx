@@ -63,6 +63,43 @@ const questionDetails = {
 export const ActivityCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
+  // Get a list of dates organized by months (last 12 months)
+  const getCalendarData = () => {
+    const calendarData = [];
+    const today = new Date();
+    
+    // Generate last 12 months of data
+    for (let monthOffset = 11; monthOffset >= 0; monthOffset--) {
+      const month = new Date(today);
+      month.setMonth(today.getMonth() - monthOffset);
+      
+      const monthName = month.toLocaleString('default', { month: 'short' });
+      const days = [];
+      
+      // Generate days for this month (we'll simplify and use 7 days per week fixed)
+      const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(month.getFullYear(), month.getMonth(), day);
+        const dateString = formatDate(date);
+        const activity = mockActivityData[dateString] || { count: 0, questions: [] };
+        
+        days.push({
+          date: dateString,
+          count: activity.count,
+          dayOfWeek: date.getDay()
+        });
+      }
+      
+      calendarData.push({
+        month: monthName,
+        days
+      });
+    }
+    
+    return calendarData;
+  };
+  
   // Format date as YYYY-MM-DD
   const formatDate = (date: Date): string => {
     return date.toISOString().split('T')[0];
@@ -89,36 +126,7 @@ export const ActivityCalendar = () => {
     }
   };
   
-  // Get contribution data for horizontal display
-  const getHorizontalContributionData = () => {
-    const today = new Date();
-    const contributions = [];
-    
-    // Get data for the last 12 months
-    for (let i = 0; i < 365; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      const dateString = formatDate(date);
-      const activity = mockActivityData[dateString] || { count: 0, questions: [] };
-      
-      const month = date.toLocaleString('default', { month: 'long' });
-      const day = date.getDate();
-      const isFirstOfMonth = day === 1;
-      
-      contributions.push({
-        date: dateString,
-        count: activity.count,
-        day,
-        month,
-        isFirstOfMonth
-      });
-    }
-    
-    // Reverse to have oldest first
-    return contributions.reverse();
-  };
-  
-  const contributionData = getHorizontalContributionData();
+  const calendarData = getCalendarData();
   
   return (
     <Card className="bg-white border border-gray-100">
@@ -131,57 +139,86 @@ export const ActivityCalendar = () => {
       <CardContent>
         <div className="overflow-x-auto">
           <div className="min-w-max">
-            {/* Horizontal calendar display */}
-            <div className="flex flex-col">
-              {/* Month labels - horizontal above the squares */}
-              <div className="flex mb-1 relative h-6">
-                {contributionData.map((day, index) => (
-                  day.isFirstOfMonth && (
-                    <div 
-                      key={`month-${index}`}
-                      className="absolute text-xs font-medium text-gray-500"
-                      style={{ left: `${index * 18}px` }}
-                    >
-                      {day.month}
-                    </div>
-                  )
+            {/* Days of week header (Sunday - Saturday) */}
+            <div className="flex text-xs text-gray-500 mb-1 ml-8">
+              <div className="w-3 mx-1">S</div>
+              <div className="w-3 mx-1">M</div>
+              <div className="w-3 mx-1">T</div>
+              <div className="w-3 mx-1">W</div>
+              <div className="w-3 mx-1">T</div>
+              <div className="w-3 mx-1">F</div>
+              <div className="w-3 mx-1">S</div>
+            </div>
+            
+            <div className="flex">
+              {/* Month labels */}
+              <div className="flex flex-col mr-2">
+                {calendarData.map((month, idx) => (
+                  <div 
+                    key={idx} 
+                    className="text-xs text-gray-500 h-[29px] flex items-start"
+                    style={{ marginTop: idx === 0 ? '0' : '-9px' }}
+                  >
+                    {month.month}
+                  </div>
                 ))}
               </div>
               
-              {/* Calendar squares - horizontal row */}
-              <div className="flex">
-                {contributionData.map((day, index) => {
-                  const level = getActivityLevel(day.count);
-                  const squareColor = getSquareColor(level);
+              {/* Calendar grid */}
+              <div className="flex flex-col">
+                {calendarData.map((month, monthIdx) => {
+                  // Create a 7x5 grid (rows = days of week, columns = weeks)
+                  const weeks: Array<Array<{date: string, count: number} | null>> = Array(7).fill(null).map(() => Array(5).fill(null));
+                  
+                  // Fill the grid with actual days
+                  month.days.forEach(day => {
+                    const weekOfMonth = Math.floor((day.date.split('-')[2] as unknown as number - 1) / 7);
+                    if (weekOfMonth < 5) { // Only show up to 5 weeks
+                      weeks[day.dayOfWeek][weekOfMonth] = { 
+                        date: day.date, 
+                        count: day.count 
+                      };
+                    }
+                  });
                   
                   return (
-                    <div 
-                      key={`day-${index}`}
-                      className={`w-4 h-4 ${squareColor} m-[1px] rounded-sm flex items-center justify-center cursor-pointer transition-all hover:scale-110 relative group`}
-                      onClick={() => setSelectedDate(day.date)}
-                      title={`${day.date}: ${day.count} questions solved`}
-                    >
-                      {/* Show date on hover */}
-                      <span className="absolute text-[8px] text-white font-bold opacity-0 group-hover:opacity-100">
-                        {day.day}
-                      </span>
+                    <div key={monthIdx} className="flex mb-1">
+                      {weeks.map((daysInWeek, dayOfWeekIdx) => (
+                        <div key={dayOfWeekIdx} className="flex flex-col mr-1">
+                          {daysInWeek.map((day, weekIdx) => {
+                            if (!day) return <div key={weekIdx} className="w-3 h-3 bg-transparent my-[2px]"></div>;
+                            
+                            const level = getActivityLevel(day.count);
+                            const squareColor = getSquareColor(level);
+                            
+                            return (
+                              <div 
+                                key={weekIdx}
+                                className={`w-3 h-3 ${squareColor} my-[2px] cursor-pointer transition-all hover:scale-110`}
+                                onClick={() => setSelectedDate(day.date)}
+                                title={`${day.date}: ${day.count} questions solved`}
+                              />
+                            );
+                          })}
+                        </div>
+                      ))}
                     </div>
                   );
                 })}
               </div>
             </div>
-            
-            <div className="flex justify-end mt-4">
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <span>Less</span>
-                <div className="w-3 h-3 bg-gray-100 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-200 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-400 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-600 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-800 rounded-sm"></div>
-                <span>More</span>
-              </div>
-            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end mt-4">
+          <div className="flex items-center space-x-2 text-xs text-gray-500">
+            <span>Less</span>
+            <div className="w-3 h-3 bg-gray-100"></div>
+            <div className="w-3 h-3 bg-green-200"></div>
+            <div className="w-3 h-3 bg-green-400"></div>
+            <div className="w-3 h-3 bg-green-600"></div>
+            <div className="w-3 h-3 bg-green-800"></div>
+            <span>More</span>
           </div>
         </div>
       </CardContent>
