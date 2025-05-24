@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
@@ -61,64 +62,53 @@ const questionDetails = {
 export const ActivityCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
-  // Generate horizontal timeline data (52 weeks)
-  const getHorizontalCalendarData = () => {
-    const weeks = [];
+  // Generate months data (12 months)
+  const getMonthsData = () => {
+    const months = [];
     const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 364); // Start from 52 weeks ago
     
-    // Find the Sunday of the week containing startDate
-    const startSunday = new Date(startDate);
-    startSunday.setDate(startDate.getDate() - startDate.getDay());
-    
-    for (let weekIndex = 0; weekIndex < 52; weekIndex++) {
-      const weekStart = new Date(startSunday);
-      weekStart.setDate(startSunday.getDate() + (weekIndex * 7));
+    for (let monthOffset = 11; monthOffset >= 0; monthOffset--) {
+      const monthDate = new Date(today.getFullYear(), today.getMonth() - monthOffset, 1);
+      const monthName = monthDate.toLocaleString('default', { month: 'short' });
+      const year = monthDate.getFullYear();
       
+      // Get first day of month and last day
+      const firstDay = new Date(year, monthDate.getMonth(), 1);
+      const lastDay = new Date(year, monthDate.getMonth() + 1, 0);
+      
+      // Get the starting day of week (0 = Sunday)
+      const startingDayOfWeek = firstDay.getDay();
+      
+      // Generate all days for this month
       const days = [];
-      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-        const currentDate = new Date(weekStart);
-        currentDate.setDate(weekStart.getDate() + dayIndex);
-        
-        const dateString = formatDate(currentDate);
+      const totalDays = lastDay.getDate();
+      
+      // Add empty cells for days before month starts
+      for (let i = 0; i < startingDayOfWeek; i++) {
+        days.push(null);
+      }
+      
+      // Add actual days
+      for (let day = 1; day <= totalDays; day++) {
+        const date = new Date(year, monthDate.getMonth(), day);
+        const dateString = formatDate(date);
         const activity = mockActivityData[dateString] || { count: 0, questions: [] };
         
         days.push({
           date: dateString,
-          count: activity.count,
-          dayOfWeek: dayIndex
+          day: day,
+          count: activity.count
         });
       }
       
-      weeks.push({
-        weekStart: formatDate(weekStart),
-        days
+      months.push({
+        name: monthName,
+        year: year,
+        days: days
       });
     }
     
-    return weeks;
-  };
-  
-  // Get month labels for horizontal display
-  const getMonthLabels = (weeks: any[]) => {
-    const labels = [];
-    let currentMonth = '';
-    
-    weeks.forEach((week, weekIndex) => {
-      const weekStartDate = new Date(week.weekStart);
-      const monthName = weekStartDate.toLocaleString('default', { month: 'short' });
-      
-      if (monthName !== currentMonth) {
-        labels.push({
-          weekIndex,
-          month: monthName
-        });
-        currentMonth = monthName;
-      }
-    });
-    
-    return labels;
+    return months;
   };
   
   // Format date as YYYY-MM-DD
@@ -147,8 +137,7 @@ export const ActivityCalendar = () => {
     }
   };
   
-  const weeks = getHorizontalCalendarData();
-  const monthLabels = getMonthLabels(weeks);
+  const months = getMonthsData();
   
   return (
     <Card className="bg-white border border-gray-100">
@@ -160,39 +149,42 @@ export const ActivityCalendar = () => {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <div className="min-w-max">
-            {/* Month labels */}
-            <div className="flex mb-2 relative h-4">
-              {monthLabels.map((label, index) => (
-                <div 
-                  key={index}
-                  className="text-xs text-gray-500 absolute"
-                  style={{ left: `${label.weekIndex * 15}px` }}
-                >
-                  {label.month}
+          <div className="flex gap-4 min-w-max">
+            {months.map((month, monthIndex) => (
+              <div key={`${month.name}-${month.year}`} className="flex flex-col">
+                {/* Month label */}
+                <div className="text-xs text-gray-500 mb-2 h-4">
+                  {month.name}
                 </div>
-              ))}
-            </div>
-            
-            {/* Calendar grid - 7 rows (days of week) x 52 columns (weeks) */}
-            <div className="grid grid-rows-7 gap-1" style={{ gridTemplateColumns: `repeat(52, 12px)` }}>
-              {Array.from({ length: 7 }, (_, dayIndex) => (
-                weeks.map((week, weekIndex) => {
-                  const day = week.days[dayIndex];
-                  const level = getActivityLevel(day.count);
-                  const squareColor = getSquareColor(level);
-                  
-                  return (
-                    <div
-                      key={`${weekIndex}-${dayIndex}`}
-                      className={`w-3 h-3 ${squareColor} cursor-pointer transition-all hover:scale-110 rounded-sm`}
-                      onClick={() => setSelectedDate(day.date)}
-                      title={`${day.date}: ${day.count} questions solved`}
-                    />
-                  );
-                })
-              )).flat()}
-            </div>
+                
+                {/* Month calendar grid */}
+                <div className="grid grid-cols-7 gap-1">
+                  {month.days.map((day, dayIndex) => {
+                    if (!day) {
+                      // Empty cell for days before month starts
+                      return (
+                        <div
+                          key={`empty-${dayIndex}`}
+                          className="w-3 h-3"
+                        />
+                      );
+                    }
+                    
+                    const level = getActivityLevel(day.count);
+                    const squareColor = getSquareColor(level);
+                    
+                    return (
+                      <div
+                        key={day.date}
+                        className={`w-3 h-3 ${squareColor} cursor-pointer transition-all hover:scale-110 rounded-sm`}
+                        onClick={() => setSelectedDate(day.date)}
+                        title={`${day.date}: ${day.count} questions solved`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>
