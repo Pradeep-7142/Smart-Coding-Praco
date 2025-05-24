@@ -322,9 +322,9 @@ export const QuestionList = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="high">High (>60%)</SelectItem>
+                      <SelectItem value="high">High (60%+)</SelectItem>
                       <SelectItem value="medium">Medium (40-60%)</SelectItem>
-                      <SelectItem value="low">Low (<40%)</SelectItem>
+                      <SelectItem value="low">Low (under 40%)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
