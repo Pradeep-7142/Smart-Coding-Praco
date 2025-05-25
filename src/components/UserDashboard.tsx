@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Target, Calendar, TrendingUp, CheckCircle2, Clock, XCircle, Check } from "lucide-react";
 import { ActivityCalendar } from "./ActivityCalendar";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
 const mockUserData = {
   name: "Alex Johnson",
@@ -32,7 +34,47 @@ const mockUserData = {
     { topic: "Trees", solved: 22, total: 28, percentage: 79 },
     { topic: "Graphs", solved: 12, total: 25, percentage: 48 },
     { topic: "System Design", solved: 5, total: 15, percentage: 33 }
+  ],
+  companyFrequency: [
+    { company: "Google", questions: 45 },
+    { company: "Amazon", questions: 38 },
+    { company: "Meta", questions: 32 },
+    { company: "Microsoft", questions: 28 },
+    { company: "Apple", questions: 22 }
+  ],
+  acceptanceRateDistribution: [
+    { range: "80-100%", count: 15 },
+    { range: "60-79%", count: 32 },
+    { range: "40-59%", count: 48 },
+    { range: "20-39%", count: 25 },
+    { range: "0-19%", count: 7 }
   ]
+};
+
+const difficultyData = [
+  { name: "Easy", value: mockUserData.stats.easysolved, fill: "#22c55e" },
+  { name: "Medium", value: mockUserData.stats.mediumSolved, fill: "#eab308" },
+  { name: "Hard", value: mockUserData.stats.hardSolved, fill: "#ef4444" }
+];
+
+const topicColors = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"];
+
+const chartConfig = {
+  solved: {
+    label: "Questions Solved",
+  },
+  easy: {
+    label: "Easy",
+    color: "#22c55e",
+  },
+  medium: {
+    label: "Medium", 
+    color: "#eab308",
+  },
+  hard: {
+    label: "Hard",
+    color: "#ef4444",
+  },
 };
 
 export const UserDashboard = () => {
@@ -148,8 +190,123 @@ export const UserDashboard = () => {
         </Card>
       </div>
 
-      {/* Activity Calendar - New Section */}
+      {/* Activity Calendar */}
       <ActivityCalendar />
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Difficulty Distribution Pie Chart */}
+        <Card className="bg-white border border-gray-100">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900">Difficulty Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <PieChart>
+                <Pie
+                  data={difficultyData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {difficultyData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                />
+              </PieChart>
+            </ChartContainer>
+            <div className="flex justify-center space-x-4 mt-4">
+              {difficultyData.map((item) => (
+                <div key={item.name} className="flex items-center space-x-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: item.fill }}
+                  />
+                  <span className="text-sm text-gray-600">{item.name}: {item.value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Topic Progress Bar Chart */}
+        <Card className="bg-white border border-gray-100">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900">Topic Mastery</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <BarChart data={mockUserData.topicProgress} layout="horizontal">
+                <XAxis type="number" domain={[0, 100]} />
+                <YAxis dataKey="topic" type="category" width={80} />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                  formatter={(value) => [`${value}%`, 'Progress']}
+                />
+                <Bar 
+                  dataKey="percentage" 
+                  fill="#3b82f6"
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Company Frequency Chart */}
+        <Card className="bg-white border border-gray-100">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900">Company Question Frequency</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <BarChart data={mockUserData.companyFrequency}>
+                <XAxis dataKey="company" />
+                <YAxis />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                  formatter={(value) => [`${value}`, 'Questions']}
+                />
+                <Bar 
+                  dataKey="questions" 
+                  fill="#8b5cf6"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Acceptance Rate Distribution */}
+        <Card className="bg-white border border-gray-100">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900">Acceptance Rate Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <BarChart data={mockUserData.acceptanceRateDistribution}>
+                <XAxis dataKey="range" />
+                <YAxis />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                  formatter={(value) => [`${value}`, 'Questions']}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="#06b6d4"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Difficulty Breakdown */}
       <Card className="bg-white border border-gray-100">
